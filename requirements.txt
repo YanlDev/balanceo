@@ -1,0 +1,17 @@
+# Calculadora de Balanceamiento de Líneas - Algoritmo RPW
+# Dependencias necesarias para la aplicación
+
+# Visualización y gráficos
+matplotlib>=3.6.0
+
+# Análisis de datos
+pandas>=1.5.0
+numpy>=1.24.0
+
+# GUI adicional (opcional, para mejores widgets)
+# tkinter ya viene incluido con Python
+
+# Dependencias de desarrollo (opcional)
+# pytest>=7.0.0  # Para testing
+# black>=22.0.0   # Para formateo de código
+# flake8>=5.0.0   # Para linting
