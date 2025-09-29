@@ -31,11 +31,13 @@ class LineaProduccion:
         # Limpiar sucesores existentes
         for tarea in self.tareas.values():
             tarea._sucesores.clear()
-        
-        # Recalcular sucesores basado en precedencias
+
+        # CORRECCIÓN: Construir sucesores correctamente
+        # Si tarea A tiene precedencia B, entonces A es sucesor de B
         for tarea in self.tareas.values():
             for precedencia_id in tarea.precedencias:
                 if precedencia_id in self.tareas:
+                    # precedencia_id -> tarea.id (precedencia_id es predecesor de tarea)
                     self.tareas[precedencia_id].agregar_sucesor(tarea.id)
     
     def calcular_tiempo_ciclo(self) -> float:

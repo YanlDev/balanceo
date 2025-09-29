@@ -529,7 +529,7 @@ class PanelVistaPrevia:
                     ("Archivos PDF", "*.pdf"),
                     ("Todos los archivos", "*.*")
                 ],
-                initialname=f"reporte_balanceo_{self._obtener_timestamp()}.pdf"
+                initialfile=f"reporte_balanceo_{self._obtener_timestamp()}.pdf"
             )
 
             if archivo_destino:

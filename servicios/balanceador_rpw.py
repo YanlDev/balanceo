@@ -94,35 +94,52 @@ class BalanceadorRPW:
     def _asignar_tareas_a_estaciones(self) -> List[Estacion]:
         """
         Asigna tareas a estaciones siguiendo el algoritmo RPW.
+        
+        CORRECCIÓN PRINCIPAL: Iterar hasta asignar todas las tareas
         """
         estaciones = []
         tiempo_ciclo = self.linea_produccion.obtener_tiempo_ciclo()
         tareas_asignadas = set()
+        tareas_pendientes = list(self.tareas_ordenadas)
         
-        for tarea in self.tareas_ordenadas:
-            # Verificar si todas las precedencias han sido asignadas
-            if not self._precedencias_satisfechas(tarea, tareas_asignadas):
-                continue
+        # Continuar hasta que todas las tareas estén asignadas
+        while len(tareas_asignadas) < len(self.linea_produccion.tareas):
+            tarea_asignada_en_iteracion = False
             
-            # Buscar estación existente donde quepa la tarea
-            estacion_asignada = None
-            for estacion in estaciones:
-                if estacion.puede_agregar_tarea(tarea):
-                    # Verificar restricciones adicionales de precedencia por estación
-                    if self._puede_asignar_a_estacion(tarea, estacion, tareas_asignadas):
+            # Intentar asignar cada tarea pendiente
+            for tarea in list(tareas_pendientes):
+                # Verificar si todas las precedencias han sido asignadas
+                if not self._precedencias_satisfechas(tarea, tareas_asignadas):
+                    continue
+                
+                # Buscar estación existente donde quepa la tarea
+                estacion_asignada = None
+                for estacion in estaciones:
+                    if estacion.puede_agregar_tarea(tarea):
                         estacion_asignada = estacion
                         break
+                
+                # Si no cabe en ninguna estación, crear una nueva
+                if estacion_asignada is None:
+                    numero_estacion = len(estaciones) + 1
+                    estacion_asignada = Estacion(numero_estacion, tiempo_ciclo)
+                    estaciones.append(estacion_asignada)
+                
+                # Asignar tarea a la estación
+                if estacion_asignada.agregar_tarea(tarea):
+                    tareas_asignadas.add(tarea.id)
+                    self.asignaciones[tarea.id] = estacion_asignada.numero
+                    tareas_pendientes.remove(tarea)
+                    tarea_asignada_en_iteracion = True
+                    break  # Pasar a la siguiente iteración del while
             
-            # Si no cabe en ninguna estación, crear una nueva
-            if estacion_asignada is None:
-                numero_estacion = len(estaciones) + 1
-                estacion_asignada = Estacion(numero_estacion, tiempo_ciclo)
-                estaciones.append(estacion_asignada)
-            
-            # Asignar tarea a la estación
-            if estacion_asignada.agregar_tarea(tarea):
-                tareas_asignadas.add(tarea.id)
-                self.asignaciones[tarea.id] = estacion_asignada.numero
+            # Si en una iteración completa no se asignó ninguna tarea, hay un problema
+            if not tarea_asignada_en_iteracion:
+                tareas_no_asignadas = [t.id for t in tareas_pendientes]
+                raise ValidacionError(
+                    f"No se pudieron asignar las siguientes tareas: {', '.join(tareas_no_asignadas)}. "
+                    "Verifique las precedencias y el tiempo de ciclo."
+                )
         
         return estaciones
     
@@ -131,30 +148,6 @@ class BalanceadorRPW:
         Verifica si todas las precedencias de una tarea han sido satisfechas.
         """
         return tarea.precedencias.issubset(tareas_asignadas)
-    
-    def _puede_asignar_a_estacion(self, tarea: Tarea, estacion: Estacion, tareas_asignadas: set) -> bool:
-        """
-        Verifica restricciones adicionales para asignar tarea a estación específica.
-        Por ejemplo, evitar asignar predecesores y sucesores a la misma estación si es posible.
-        """
-        # Restricción básica: debe caber en tiempo
-        if not estacion.puede_agregar_tarea(tarea):
-            return False
-        
-        # Obtener IDs de tareas ya asignadas a esta estación
-        tareas_en_estacion = set(estacion.obtener_ids_tareas())
-        
-        # Verificar que no se violen precedencias dentro de la estación
-        # (Esta es una verificación adicional de seguridad)
-        for tarea_id_estacion in tareas_en_estacion:
-            if tarea_id_estacion in tarea.precedencias:
-                continue  # Está bien, el predecesor está en la misma estación
-            if tarea.id in self.linea_produccion.tareas[tarea_id_estacion].precedencias:
-                # La tarea actual es predecesora de una tarea ya en la estación
-                # Esto podría ser problemático en algunos casos, pero generalmente se permite
-                continue
-        
-        return True
     
     def _generar_estadisticas(self, estaciones: List[Estacion]) -> Dict[str, any]:
         """Genera estadísticas del balanceamiento."""

@@ -445,30 +445,38 @@ class PanelEntradaDatos:
             self.label_estaciones_min.config(text="Estaciones Mínimas: --")
     
     def _cargar_ejemplo(self):
-        """Carga un ejemplo predefinido de tareas."""
+        """Carga el ejemplo de la imagen (datos reales de balanceamiento)."""
         if self.tareas_data:
             respuesta = messagebox.askyesno("Confirmar", "¿Desea reemplazar los datos actuales con el ejemplo?")
             if not respuesta:
                 return
         
-        # Datos de ejemplo
+        # Datos del ejemplo de la imagen
         ejemplo_tareas = [
-            {'id': 'A', 'descripcion': 'Preparar material', 'tiempo': 3.0, 'precedencias': []},
-            {'id': 'B', 'descripcion': 'Cortar piezas', 'tiempo': 5.0, 'precedencias': ['A']},
-            {'id': 'C', 'descripcion': 'Ensamblar base', 'tiempo': 4.0, 'precedencias': ['B']},
-            {'id': 'D', 'descripcion': 'Instalar componentes', 'tiempo': 6.0, 'precedencias': ['C']},
-            {'id': 'E', 'descripcion': 'Soldadura', 'tiempo': 7.0, 'precedencias': ['D']},
-            {'id': 'F', 'descripcion': 'Pintura', 'tiempo': 4.0, 'precedencias': ['E']},
-            {'id': 'G', 'descripcion': 'Inspección final', 'tiempo': 2.0, 'precedencias': ['F']},
-            {'id': 'H', 'descripcion': 'Empaque', 'tiempo': 3.0, 'precedencias': ['G']}
+            {'id': 'A', 'descripcion': 'Preparar material', 'tiempo': 0.7, 'precedencias': []},
+            {'id': 'B', 'descripcion': 'Cortar piezas', 'tiempo': 0.6, 'precedencias': ['A']},
+            {'id': 'C', 'descripcion': 'Ensamblar base', 'tiempo': 0.8, 'precedencias': ['A']},
+            {'id': 'D', 'descripcion': 'Instalar componentes', 'tiempo': 0.7, 'precedencias': ['B']},
+            {'id': 'E', 'descripcion': 'Soldadura', 'tiempo': 0.1, 'precedencias': ['B']},
+            {'id': 'F', 'descripcion': 'Pintura', 'tiempo': 0.4, 'precedencias': ['C']},
+            {'id': 'G', 'descripcion': 'Inspección final', 'tiempo': 0.2, 'precedencias': ['C']},
+            {'id': 'H', 'descripcion': 'Empaque', 'tiempo': 0.3, 'precedencias': ['D', 'F']},
+            {'id': 'I', 'descripcion': 'Traslados', 'tiempo': 0.8, 'precedencias': ['G', 'F', 'H']}
         ]
         
-        # Agregar peso posicional inicial
+        # Agregar peso posicional inicial (se calculará después)
         for tarea in ejemplo_tareas:
             tarea['peso_posicional'] = 0.0
         
-        # Cargar datos
+        # Cargar datos de tareas
         self.tareas_data = ejemplo_tareas.copy()
+        
+        # Configurar parámetros de la línea
+        self.entry_demanda.delete(0, tk.END)
+        self.entry_demanda.insert(0, "480")
+
+        self.entry_tiempo_disponible.delete(0, tk.END)
+        self.entry_tiempo_disponible.insert(0, "600")
         
         # Actualizar tabla
         self._actualizar_tabla_tareas()

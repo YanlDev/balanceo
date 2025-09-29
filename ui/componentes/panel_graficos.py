@@ -360,6 +360,13 @@ class PanelGraficos:
         numeros_estacion = [f"Est. {est.numero}" for est in estaciones]
         num_tareas = [len(est.tareas_asignadas) for est in estaciones]
         
+        # CORRECCIÓN: Validar que hay datos y variación
+        if not num_tareas or max(num_tareas) == 0:
+            ax.text(0.5, 0.5, 'Sin datos', transform=ax.transAxes, 
+                   ha='center', va='center', alpha=0.6)
+            ax.set_title('Número de Tareas por Estación', fontweight='bold', fontsize=11)
+            return
+        
         # Crear gráfico de barras horizontales
         barras = ax.barh(numeros_estacion, num_tareas, color=COLORES['secundario'], alpha=0.7)
         
@@ -373,9 +380,109 @@ class PanelGraficos:
             ax.text(barra.get_width() + 0.1, barra.get_y() + barra.get_height()/2.,
                    str(num), ha='left', va='center', fontsize=9, fontweight='bold')
         
-        # Ajustar límites
-        if num_tareas:
-            ax.set_xlim(0, max(num_tareas) * 1.2)
+        # CORRECCIÓN: Ajustar límites solo si hay variación
+        max_tareas = max(num_tareas)
+        if max_tareas > 0:
+            ax.set_xlim(0, max_tareas * 1.2)
+        else:
+            ax.set_xlim(0, 1)
+    
+    def _crear_grafico_pastel(self, subplot_spec, estaciones: List):
+        """Crea el gráfico de pastel de distribución de carga."""
+        ax = self.fig_comparacion.add_subplot(subplot_spec)
+        
+        # Preparar datos
+        labels = [f"Est. {est.numero}" for est in estaciones]
+        tiempos = [est.tiempo_total for est in estaciones]
+        
+        # CORRECCIÓN: Validar que hay tiempos válidos
+        if not tiempos or sum(tiempos) == 0:
+            ax.text(0.5, 0.5, 'Sin datos', transform=ax.transAxes, 
+                   ha='center', va='center', alpha=0.6)
+            ax.set_title('Distribución de Carga de Trabajo', fontweight='bold', fontsize=11)
+            return
+        
+        # Colores personalizados
+        colores_pastel = plt.cm.Set3(range(len(estaciones)))
+        
+        # Crear gráfico de pastel
+        wedges, textos, autotextos = ax.pie(tiempos, labels=labels, autopct='%1.1f%%',
+                                           colors=colores_pastel, startangle=90)
+        
+        ax.set_title('Distribución de Carga de Trabajo', fontweight='bold', fontsize=11)
+        
+        # Mejorar texto
+        for autotext in autotextos:
+            autotext.set_color('white')
+            autotext.set_fontweight('bold')
+            autotext.set_fontsize(8)
+    
+    def _inicializar_graficos_comparacion(self):
+        """Inicializa los gráficos de comparación vacíos."""
+        self.fig_comparacion.clear()
+        
+        # Crear subplots
+        gs = self.fig_comparacion.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+        
+        # Gráfico de barras de tiempo por estación
+        self.ax_tiempos = self.fig_comparacion.add_subplot(gs[0, 0])
+        self.ax_tiempos.set_title('Tiempo Total por Estación', fontweight='bold')
+        self.ax_tiempos.set_xlabel('Estación')
+        self.ax_tiempos.set_ylabel('Tiempo (min)')
+        
+        # Gráfico de pastel de distribución de carga
+        self.ax_pastel = self.fig_comparacion.add_subplot(gs[0, 1])
+        self.ax_pastel.set_title('Distribución de Carga de Trabajo', fontweight='bold')
+        
+        # Gráfico de línea de eficiencia
+        self.ax_eficiencia = self.fig_comparacion.add_subplot(gs[1, 0])
+        self.ax_eficiencia.set_title('Métricas de Eficiencia', fontweight='bold')
+        self.ax_eficiencia.set_ylabel('Valor (%)')
+        
+        # Gráfico de barras horizontales de tareas por estación
+        self.ax_tareas = self.fig_comparacion.add_subplot(gs[1, 1])
+        self.ax_tareas.set_title('Número de Tareas por Estación', fontweight='bold')
+        self.ax_tareas.set_xlabel('Número de Tareas')
+        
+        # Texto informativo
+        for ax in [self.ax_tiempos, self.ax_pastel, self.ax_eficiencia, self.ax_tareas]:
+            ax.text(0.5, 0.5, 'Sin datos', transform=ax.transAxes, 
+                   ha='center', va='center', alpha=0.6)
+        
+        
+        try:
+            self.fig_comparacion.tight_layout()
+        except:
+            pass 
+        
+        self.canvas_comparacion.draw()
+    
+    def _actualizar_graficos_comparacion(self, estaciones: List, metricas: Dict):
+        """Actualiza los gráficos de comparación."""
+        self.fig_comparacion.clear()
+        
+        # Crear subplots con mejor distribución
+        gs = self.fig_comparacion.add_gridspec(2, 2, hspace=0.4, wspace=0.3)
+        
+        # 1. Gráfico de barras de tiempo por estación
+        self._crear_grafico_tiempos(gs[0, 0], estaciones)
+        
+        # 2. Gráfico de pastel de distribución de carga
+        self._crear_grafico_pastel(gs[0, 1], estaciones)
+        
+        # 3. Gráfico de métricas de eficiencia
+        self._crear_grafico_metricas(gs[1, 0], metricas)
+        
+        # 4. Gráfico de tareas por estación
+        self._crear_grafico_tareas(gs[1, 1], estaciones)
+        
+        # CORRECCIÓN: usar tight_layout con manejo de errores
+        try:
+            self.fig_comparacion.tight_layout()
+        except:
+            pass  # Ignorar warnings de tight_layout
+        
+        self.canvas_comparacion.draw()
     
     def limpiar_graficos(self):
         """Limpia todos los gráficos."""

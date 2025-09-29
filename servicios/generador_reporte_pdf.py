@@ -267,11 +267,10 @@ class GeneradorReportePDF:
         metricas_bas = metricas.get('metricas_basicas', {})
 
         eficiencia_linea = metricas_ef.get('eficiencia_linea', 0)
-        # Usar las métricas básicas para consistencia, con fallback a estaciones reales
         num_estaciones = metricas_bas.get('numero_estaciones', len(estaciones))
         tiempo_ciclo = linea_produccion.obtener_tiempo_ciclo()
 
-        # Tabla de resumen
+        # Tabla de resumen con anchos ajustados
         datos_resumen = [
             ['Métrica', 'Valor', 'Evaluación'],
             ['Número de Estaciones', f'{num_estaciones}', self._evaluar_estaciones(num_estaciones, metricas_bas)],
@@ -281,7 +280,7 @@ class GeneradorReportePDF:
             ['Índice de Suavidad', f'{metricas_ef.get("indice_suavidad", 0):.2f}', self._evaluar_suavidad(metricas_ef.get("indice_suavidad", 0))]
         ]
 
-        tabla_resumen = Table(datos_resumen, colWidths=[5*cm, 3*cm, 4*cm])
+        tabla_resumen = Table(datos_resumen, colWidths=[6*cm, 3*cm, 3*cm])
         tabla_resumen.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), self.colors['primary']),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -289,11 +288,15 @@ class GeneradorReportePDF:
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 12),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('TOPPADDING', (0, 0), (-1, 0), 12),
             ('BACKGROUND', (0, 1), (-1, -1), self.colors['accent']),
             ('GRID', (0, 0), (-1, -1), 1, self.colors['border']),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, self.colors['background']])
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, self.colors['background']]),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 10),
         ]))
 
         elementos.append(tabla_resumen)
@@ -312,29 +315,37 @@ class GeneradorReportePDF:
 
         elementos.append(Paragraph("CONFIGURACIÓN DE LA LÍNEA DE PRODUCCIÓN", self.styles['Subtitulo']))
 
-        # Datos de configuración
+        # Datos de configuración con anchos ajustados
         config_datos = [
             ['Parámetro', 'Valor', 'Unidad'],
             ['Demanda Diaria Objetivo', f'{linea_produccion.demanda_diaria:,}', 'unidades'],
             ['Tiempo Disponible por Día', f'{linea_produccion.tiempo_disponible:,}', 'minutos'],
             ['Tiempo de Ciclo Calculado', f'{linea_produccion.obtener_tiempo_ciclo():.2f}', 'minutos'],
             ['Número Total de Tareas', f'{len(linea_produccion.tareas)}', 'tareas'],
-            ['Tiempo Total de Todas las Tareas', f'{sum(t.tiempo for t in linea_produccion.tareas.values()):.2f}', 'minutos']
+            ['Tiempo Total de Tareas', f'{sum(t.tiempo for t in linea_produccion.tareas.values()):.2f}', 'minutos']
         ]
 
+        # CORRECCIÓN: Anchos ajustados - Total ~14cm
         tabla_config = Table(config_datos, colWidths=[7*cm, 4*cm, 3*cm])
         tabla_config.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), self.colors['secondary']),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 1), (0, -1), 'LEFT'),  # Parámetro alineado a la izquierda
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 11),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('TOPPADDING', (0, 0), (-1, 0), 12),
             ('BACKGROUND', (0, 1), (-1, -1), colors.white),
             ('GRID', (0, 0), (-1, -1), 1, self.colors['border']),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, self.colors['background']])
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, self.colors['background']]),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 10),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
         ]))
 
         elementos.append(tabla_config)
@@ -405,10 +416,10 @@ class GeneradorReportePDF:
         elementos.append(Paragraph("RESULTADOS DEL BALANCEAMIENTO POR ESTACIÓN", self.styles['Subtitulo']))
 
         # Encabezados
-        datos_estaciones = [['Estación', 'Tareas Asignadas', 'Tiempo Total', 'Utilización', 'Tiempo Ocioso', 'Estado']]
+        datos_estaciones = [['Estación', 'Tareas', 'Tiempo', 'Utilización', 'Ocioso', 'Estado']]
 
         tiempo_ciclo = linea_produccion.obtener_tiempo_ciclo()
-        estilos_especiales = []  # Para aplicar colores según el estado
+        estilos_especiales = []
 
         for i, estacion in enumerate(estaciones):
             utilizacion = estacion.calcular_utilizacion()
@@ -418,50 +429,52 @@ class GeneradorReportePDF:
             # Determinar estado y color
             if utilizacion >= 90:
                 estado = "Sobrecargada"
-                color_fondo = colors.Color(1.0, 0.9, 0.9)  # Rojo muy claro
+                color_fondo = colors.Color(1.0, 0.9, 0.9)
             elif utilizacion >= 75:
-                estado = "Alta Utilización"
-                color_fondo = colors.Color(1.0, 0.95, 0.8)  # Naranja muy claro
+                estado = "Alta Util."
+                color_fondo = colors.Color(1.0, 0.95, 0.8)
             elif utilizacion >= 50:
                 estado = "Óptima"
-                color_fondo = colors.Color(0.9, 1.0, 0.9)  # Verde muy claro
+                color_fondo = colors.Color(0.9, 1.0, 0.9)
             else:
-                estado = "Baja Utilización"
-                color_fondo = colors.Color(0.95, 0.95, 1.0)  # Azul muy claro
+                estado = "Baja Util."
+                color_fondo = colors.Color(0.95, 0.95, 1.0)
 
-            # Guardar estilo para esta fila
-            fila_idx = i + 1  # +1 porque la fila 0 es el header
+            fila_idx = i + 1
             estilos_especiales.append(('BACKGROUND', (0, fila_idx), (-1, fila_idx), color_fondo))
 
             datos_estaciones.append([
                 f'E-{estacion.numero}',
                 tareas_asignadas,
-                f'{estacion.tiempo_total:.1f} min',
+                f'{estacion.tiempo_total:.1f}',
                 f'{utilizacion:.1f}%',
-                f'{tiempo_ocioso:.1f} min',
+                f'{tiempo_ocioso:.1f}',
                 estado
             ])
 
-        tabla_estaciones = Table(datos_estaciones, colWidths=[2*cm, 4.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 3*cm])
+        # CORRECCIÓN: Anchos ajustados para 6 columnas - Total ~17cm
+        tabla_estaciones = Table(datos_estaciones, colWidths=[1.5*cm, 5*cm, 2*cm, 2.5*cm, 2*cm, 3*cm])
 
-        # Estilos base de la tabla
         estilos_tabla = [
             ('BACKGROUND', (0, 0), (-1, 0), self.colors['primary']),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('ALIGN', (1, 1), (1, -1), 'LEFT'),  # Tareas alineadas a la izquierda
+            ('ALIGN', (1, 1), (1, -1), 'LEFT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('TOPPADDING', (0, 0), (-1, 0), 12),
             ('GRID', (0, 0), (-1, -1), 1, self.colors['border']),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
         ]
 
-        # Agregar estilos especiales para cada fila según su estado
         estilos_tabla.extend(estilos_especiales)
-
         tabla_estaciones.setStyle(TableStyle(estilos_tabla))
 
         elementos.append(tabla_estaciones)
@@ -478,42 +491,43 @@ class GeneradorReportePDF:
         metricas_bas = metricas.get('metricas_basicas', {})
         metricas_prod = metricas.get('metricas_produccion', {})
 
-        # Crear tabla de métricas principales
+        # Crear tabla de métricas principales con descripciones más cortas
         datos_metricas = [
             ['Métrica', 'Valor', 'Descripción', 'Evaluación'],
             [
                 'Eficiencia de Línea',
                 f'{metricas_ef.get("eficiencia_linea", 0):.1f}%',
-                'Porcentaje promedio de utilización de todas las estaciones',
+                'Utilización promedio de estaciones',
                 self._evaluar_eficiencia(metricas_ef.get("eficiencia_linea", 0))
             ],
             [
                 'Índice de Suavidad',
                 f'{metricas_ef.get("indice_suavidad", 0):.2f}',
-                'Medida del balance entre estaciones (menor es mejor)',
+                'Balance entre estaciones',
                 self._evaluar_suavidad(metricas_ef.get("indice_suavidad", 0))
             ],
             [
                 'Tiempo Ocioso Total',
                 f'{metricas_ef.get("tiempo_ocioso_total", 0):.1f} min',
-                'Tiempo total no utilizado en todas las estaciones',
+                'Tiempo no utilizado total',
                 'Información'
             ],
             [
                 'Throughput Máximo',
                 f'{metricas_prod.get("capacidad_maxima_diaria", 0):.0f} und/día',
-                'Capacidad máxima de producción diaria',
+                'Capacidad máxima diaria',
                 'Información'
             ],
             [
                 'Número de Estaciones',
                 f'{metricas_bas.get("numero_estaciones", 0)}',
-                'Total de estaciones de trabajo utilizadas',
+                'Total de estaciones usadas',
                 self._evaluar_estaciones(metricas_bas.get("numero_estaciones", 0), metricas_bas)
             ]
         ]
 
-        tabla_metricas = Table(datos_metricas, colWidths=[4*cm, 3*cm, 6*cm, 4*cm])
+        # Ajustar anchos de columna para evitar solapamiento
+        tabla_metricas = Table(datos_metricas, colWidths=[3.5*cm, 2.5*cm, 5.5*cm, 3.5*cm])
         tabla_metricas.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), self.colors['secondary']),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -522,12 +536,17 @@ class GeneradorReportePDF:
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
             ('FONTSIZE', (0, 0), (-1, 0), 10),
             ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('TOPPADDING', (0, 0), (-1, 0), 12),
             ('BACKGROUND', (0, 1), (-1, -1), colors.white),
             ('GRID', (0, 0), (-1, -1), 1, self.colors['border']),
             ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 1), (-1, -1), 9),
             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, self.colors['background']]),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),  # Alineación superior para mejor distribución
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 10),
         ]))
 
         elementos.append(tabla_metricas)
@@ -550,22 +569,26 @@ class GeneradorReportePDF:
             utilizacion = estacion.calcular_utilizacion()
             tiempo_ocioso = estacion.obtener_tiempo_ocioso()
 
+            # CORRECCIÓN: usar tareas_asignadas en lugar de tareas
+            num_tareas = len(estacion.tareas_asignadas)
+
             # Información detallada de la estación
             info_estacion = f"""
             <b>Tiempo total asignado:</b> {estacion.tiempo_total:.2f} minutos<br/>
             <b>Utilización:</b> {utilizacion:.1f}%<br/>
             <b>Tiempo ocioso:</b> {tiempo_ocioso:.2f} minutos<br/>
-            <b>Número de tareas:</b> {len(estacion.tareas)}<br/>
+            <b>Número de tareas:</b> {num_tareas}<br/>
             """
 
             elementos.append(Paragraph(info_estacion, self.styles['TextoCorporativo']))
 
             # Tabla de tareas de la estación
-            if estacion.tareas:
+            # CORRECCIÓN: usar tareas_asignadas en lugar de tareas
+            if estacion.tareas_asignadas:
                 datos_tareas_est = [['Tarea ID', 'Descripción', 'Tiempo (min)', '% del Ciclo']]
 
-                for tarea in estacion.tareas:
-                    porcentaje_ciclo = (tarea.tiempo / tiempo_ciclo) * 100
+                for tarea in estacion.tareas_asignadas:
+                    porcentaje_ciclo = (tarea.tiempo / tiempo_ciclo) * 100 if tiempo_ciclo > 0 else 0
                     descripcion = tarea.descripcion
                     if len(descripcion) > 40:
                         descripcion = descripcion[:37] + '...'

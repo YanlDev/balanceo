@@ -1,4 +1,5 @@
 from typing import Dict, List
+import math
 from modelos.linea_produccion import LineaProduccion
 from modelos.estacion import Estacion
 
@@ -54,7 +55,8 @@ class CalculadoraMetricas:
                 'utilizacion_promedio': 0.0,
                 'desbalance': 100.0,
                 'tiempo_ocioso_total': 0.0,
-                'tiempo_ocioso_porcentaje': 100.0
+                'tiempo_ocioso_porcentaje': 100.0,
+                'indice_suavidad': 0.0
             }
         
         # Eficiencia de la línea
@@ -74,6 +76,12 @@ class CalculadoraMetricas:
         tiempo_ocioso_total = sum(est.obtener_tiempo_ocioso() for est in estaciones)
         tiempo_ocioso_porcentaje = (tiempo_ocioso_total / tiempo_productivo_total) * 100
         
+        # CORRECCIÓN: Índice de suavidad (Smoothness Index)
+        # Formula correcta: SI = sqrt(sum((Ti - Tc)^2) / n)
+        # Donde Ti es el tiempo de la estación i, Tc es el tiempo de ciclo
+        suma_cuadrados = sum((est.tiempo_total - tiempo_ciclo) ** 2 for est in estaciones)
+        indice_suavidad = math.sqrt(suma_cuadrados / len(estaciones))
+        
         return {
             'eficiencia_linea': eficiencia_linea,
             'utilizacion_promedio': utilizacion_promedio,
@@ -81,7 +89,8 @@ class CalculadoraMetricas:
             'utilizacion_minima': utilizacion_min,
             'desbalance': desbalance,
             'tiempo_ocioso_total': tiempo_ocioso_total,
-            'tiempo_ocioso_porcentaje': tiempo_ocioso_porcentaje
+            'tiempo_ocioso_porcentaje': tiempo_ocioso_porcentaje,
+            'indice_suavidad': indice_suavidad
         }
     
     def _calcular_metricas_produccion(self) -> Dict[str, float]:
@@ -95,6 +104,7 @@ class CalculadoraMetricas:
                 'throughput_teorico': 0.0,
                 'throughput_real': 0.0,
                 'capacidad_diaria': 0.0,
+                'capacidad_maxima_diaria': 0.0,
                 'utilizacion_capacidad': 0.0,
                 'tiempo_por_unidad': 0.0
             }
@@ -110,8 +120,11 @@ class CalculadoraMetricas:
         else:
             throughput_real = throughput_teorico
         
-        # Capacidad diaria
+        # Capacidad diaria real
         capacidad_diaria = throughput_real * tiempo_disponible
+        
+        # Capacidad máxima teórica
+        capacidad_maxima_diaria = throughput_teorico * tiempo_disponible
         
         # Utilización de capacidad
         utilizacion_capacidad = (demanda_diaria / capacidad_diaria * 100) if capacidad_diaria > 0 else 0
@@ -120,6 +133,7 @@ class CalculadoraMetricas:
             'throughput_teorico': throughput_teorico,
             'throughput_real': throughput_real,
             'capacidad_diaria': capacidad_diaria,
+            'capacidad_maxima_diaria': capacidad_maxima_diaria,
             'utilizacion_capacidad': min(utilizacion_capacidad, 100.0),
             'tiempo_por_unidad': 1 / throughput_real if throughput_real > 0 else float('inf')
         }
@@ -259,12 +273,14 @@ class CalculadoraMetricas:
                 'utilizacion_promedio': 0.0,
                 'desbalance': 0.0,
                 'tiempo_ocioso_total': 0.0,
-                'tiempo_ocioso_porcentaje': 0.0
+                'tiempo_ocioso_porcentaje': 0.0,
+                'indice_suavidad': 0.0
             },
             'metricas_produccion': {
                 'throughput_teorico': 0.0,
                 'throughput_real': 0.0,
                 'capacidad_diaria': 0.0,
+                'capacidad_maxima_diaria': 0.0,
                 'utilizacion_capacidad': 0.0,
                 'tiempo_por_unidad': 0.0
             },
