@@ -15,6 +15,7 @@ from servicios.calculadora_metricas import CalculadoraMetricas
 from ui.componentes.panel_entrada import PanelEntradaDatos
 from ui.componentes.panel_resultados import PanelResultados
 from ui.componentes.panel_graficos import PanelGraficos
+from ui.componentes.panel_vista_previa_pdf import PanelVistaPrevia
 
 # Importar utilidades
 from utils.estilos import EstilosModernos, COLORES, FUENTES, ESPACIADO, UtilsUI
@@ -38,6 +39,7 @@ class VentanaPrincipal:
             self.panel_entrada = None
             self.panel_resultados = None
             self.panel_graficos = None
+            self.panel_vista_previa = None
 
             # Variables de estado - inicializar
             self.datos_balanceados = False
@@ -160,12 +162,12 @@ class VentanaPrincipal:
         frame_archivo = ttk.Frame(frame_herramientas)
         frame_archivo.pack(side='right')
         
-        # Botón de exportar
-        self.btn_exportar = ttk.Button(frame_archivo,
-                                      text="💾 Exportar Resultados",
-                                      style='Acento.TButton',
-                                      command=self._exportar_resultados)
-        self.btn_exportar.pack(side='left', padx=(10, 0))
+        # Botón de vista previa (reemplaza exportar)
+        self.btn_vista_previa = ttk.Button(frame_archivo,
+                                          text="📄 Vista Previa PDF",
+                                          style='Acento.TButton',
+                                          command=self._ir_vista_previa)
+        self.btn_vista_previa.pack(side='left', padx=(10, 0))
         
         # Botón de ayuda
         self.btn_ayuda = ttk.Button(frame_archivo,
@@ -187,11 +189,17 @@ class VentanaPrincipal:
         # Pestaña 1: Configuración y Entrada de Datos
         self._crear_pestana_configuracion()
 
-        # Pestaña 2: Resultados y Análisis Comparativo
+        # Pestaña 2: Resultados del Balanceamiento
         self._crear_pestana_resultados()
 
-        # Pestaña 3: Métricas y Visualizaciones
+        # Pestaña 3: Análisis Comparativo
+        self._crear_pestana_analisis_comparativo()
+
+        # Pestaña 4: Métricas y Visualizaciones
         self._crear_pestana_metricas()
+
+        # Pestaña 5: Vista Previa de Reporte
+        self._crear_pestana_vista_previa()
     
     def _crear_pestana_configuracion(self):
         """Crea la pestaña de configuración y entrada de datos."""
@@ -202,28 +210,20 @@ class VentanaPrincipal:
         self.panel_entrada = PanelEntradaDatos(frame_config, callback_datos_actualizados=self._on_datos_actualizados)
 
     def _crear_pestana_resultados(self):
-        """Crea la pestaña de resultados con análisis comparativo."""
+        """Crea la pestaña de resultados del balanceamiento."""
         frame_resultados = ttk.Frame(self.notebook_principal, style='Fondo.TFrame')
-        self.notebook_principal.add(frame_resultados, text="📊 Resultados y Análisis")
+        self.notebook_principal.add(frame_resultados, text="📊 Resultados")
 
-        # Dividir en dos secciones verticales
-        # Sección superior: Resultados del balanceamiento
-        frame_superior = ttk.LabelFrame(frame_resultados, text="Resultados del Balanceamiento",
-                                       style='Card.TLabelframe', padding=ESPACIADO['normal'])
-        frame_superior.pack(fill='both', expand=True, padx=ESPACIADO['normal'],
-                           pady=(ESPACIADO['normal'], ESPACIADO['pequeno']))
+        # Panel de resultados ocupa toda la pestaña
+        self.panel_resultados = PanelResultados(frame_resultados)
 
-        # Sección inferior: Análisis comparativo
-        frame_inferior = ttk.LabelFrame(frame_resultados, text="Análisis Comparativo",
-                                       style='Card.TLabelframe', padding=ESPACIADO['normal'])
-        frame_inferior.pack(fill='both', expand=True, padx=ESPACIADO['normal'],
-                           pady=(ESPACIADO['pequeno'], ESPACIADO['normal']))
+    def _crear_pestana_analisis_comparativo(self):
+        """Crea la pestaña de análisis comparativo."""
+        frame_analisis = ttk.Frame(self.notebook_principal, style='Fondo.TFrame')
+        self.notebook_principal.add(frame_analisis, text="🔍 Análisis Comparativo")
 
-        # Crear panel de resultados en la sección superior
-        self.panel_resultados = PanelResultados(frame_superior)
-
-        # Crear panel de análisis comparativo en la sección inferior
-        self._crear_panel_analisis_comparativo(frame_inferior)
+        # Crear panel de análisis comparativo
+        self._crear_panel_analisis_comparativo(frame_analisis)
 
     def _crear_pestana_metricas(self):
         """Crea la pestaña de métricas con visualizaciones."""
@@ -232,6 +232,14 @@ class VentanaPrincipal:
 
         # Panel de gráficos y métricas visuales ocupa toda la pestaña
         self.panel_graficos = PanelGraficos(frame_metricas)
+
+    def _crear_pestana_vista_previa(self):
+        """Crea la pestaña de vista previa de reporte PDF."""
+        frame_vista_previa = ttk.Frame(self.notebook_principal, style='Fondo.TFrame')
+        self.notebook_principal.add(frame_vista_previa, text="📄 Vista Previa PDF")
+
+        # Panel de vista previa ocupa toda la pestaña
+        self.panel_vista_previa = PanelVistaPrevia(frame_vista_previa, callback_estado_actualizado=self._actualizar_estado)
 
     def _crear_panel_analisis_comparativo(self, parent):
         """Crea el panel de análisis comparativo."""
@@ -513,14 +521,14 @@ class VentanaPrincipal:
         # Atajos de teclado
         self.root.bind('<Control-r>', lambda e: self._ejecutar_balanceamiento())
         self.root.bind('<Control-l>', lambda e: self._limpiar_resultados())
-        self.root.bind('<Control-s>', lambda e: self._exportar_resultados())
+        self.root.bind('<Control-s>', lambda e: self._ir_vista_previa())
         self.root.bind('<F1>', lambda e: self._mostrar_ayuda())
         self.root.bind('<Escape>', lambda e: self._on_cerrar_aplicacion())
         
         # Configurar tooltips
         EstilosModernos.crear_tooltip(self.btn_balancear, "Ctrl+R: Ejecutar balanceamiento con algoritmo RPW")
         EstilosModernos.crear_tooltip(self.btn_limpiar, "Ctrl+L: Limpiar todos los resultados")
-        EstilosModernos.crear_tooltip(self.btn_exportar, "Ctrl+S: Exportar resultados a archivo")
+        EstilosModernos.crear_tooltip(self.btn_vista_previa, "Vista previa y exportación de reporte PDF")
         EstilosModernos.crear_tooltip(self.btn_ayuda, "F1: Mostrar ayuda y documentación")
     
     def _on_datos_actualizados(self):
@@ -592,8 +600,12 @@ class VentanaPrincipal:
             if hasattr(self, 'panel_graficos') and self.panel_graficos:
                 self.panel_graficos.actualizar_graficos(estaciones, metricas)
 
-            # Actualizar análisis comparativo en la pestaña de resultados
+            # Actualizar análisis comparativo en su pestaña dedicada
             self._actualizar_analisis_comparativo(estaciones, metricas)
+
+            # Actualizar datos en vista previa PDF
+            if hasattr(self, 'panel_vista_previa') and self.panel_vista_previa:
+                self.panel_vista_previa.actualizar_datos(self.linea_produccion, estaciones, metricas)
 
             # Marcar como balanceado
             self.datos_balanceados = True
@@ -681,6 +693,10 @@ class VentanaPrincipal:
             # Limpiar análisis comparativo
             self._limpiar_analisis_comparativo()
 
+            # Limpiar vista previa PDF
+            if hasattr(self, 'panel_vista_previa') and self.panel_vista_previa:
+                self.panel_vista_previa.limpiar_vista_previa()
+
             # Resetear estado
             self.datos_balanceados = False
             self.linea_produccion = None
@@ -696,66 +712,24 @@ class VentanaPrincipal:
         except Exception as e:
             self._manejar_error_seguro("Error al limpiar resultados", str(e))
 
-    def _exportar_resultados(self):
-        """Exporta los resultados a un archivo."""
+    def _ir_vista_previa(self):
+        """Cambia a la pestaña de vista previa PDF."""
         try:
             if not self.datos_balanceados:
-                messagebox.showwarning("Exportar Resultados",
-                                     "No hay resultados para exportar. Ejecute el balanceamiento primero.")
+                messagebox.showinfo("Vista Previa PDF",
+                                   "Complete el balanceamiento primero para generar la vista previa del reporte.")
+                # Cambiar a la pestaña de configuración
+                if hasattr(self, 'notebook_principal'):
+                    self.notebook_principal.select(0)
                 return
 
-            # Solicitar archivo de destino
-            archivo = filedialog.asksaveasfilename(
-                title="Exportar Resultados",
-                defaultextension=".txt",
-                filetypes=[
-                    ("Archivos de texto", "*.txt"),
-                    ("Archivos CSV", "*.csv"),
-                    ("Todos los archivos", "*.*")
-                ]
-            )
-
-            if archivo:
-                self._generar_reporte_exportacion(archivo)
-                messagebox.showinfo("Exportar Resultados",
-                                  f"Resultados exportados exitosamente a:\n{archivo}")
+            # Cambiar a la pestaña de vista previa
+            if hasattr(self, 'notebook_principal'):
+                self.notebook_principal.select(4)  # Índice 4 = pestaña de vista previa
 
         except Exception as e:
-            self._manejar_error("Error al exportar resultados", str(e))
+            self._manejar_error("Error al acceder a vista previa", str(e))
 
-    def _generar_reporte_exportacion(self, archivo: str):
-        """Genera el reporte de exportación."""
-        try:
-            with open(archivo, 'w', encoding='utf-8') as f:
-                f.write("REPORTE DE BALANCEAMIENTO DE LÍNEA - ALGORITMO RPW\n")
-                f.write("=" * 60 + "\n\n")
-
-                # Información general
-                f.write("CONFIGURACIÓN DE LA LÍNEA:\n")
-                f.write(f"Demanda diaria: {self.linea_produccion.demanda_diaria} unidades\n")
-                f.write(f"Tiempo disponible: {self.linea_produccion.tiempo_disponible} minutos\n")
-                f.write(f"Tiempo de ciclo: {self.linea_produccion.obtener_tiempo_ciclo():.2f} minutos\n\n")
-
-                # Estaciones y asignaciones
-                f.write("ESTACIONES Y ASIGNACIONES:\n")
-                for estacion in self.linea_produccion.estaciones:
-                    f.write(f"Estación {estacion.numero}:\n")
-                    f.write(f"  Tareas: {', '.join(estacion.obtener_ids_tareas())}\n")
-                    f.write(f"  Tiempo total: {estacion.tiempo_total:.2f} min\n")
-                    f.write(f"  Utilización: {estacion.calcular_utilizacion():.1f}%\n")
-                    f.write(f"  Tiempo ocioso: {estacion.obtener_tiempo_ocioso():.2f} min\n\n")
-
-                # Métricas
-                if self.calculadora_metricas:
-                    metricas = self.calculadora_metricas.calcular_todas_las_metricas()
-                    f.write("MÉTRICAS DE EFICIENCIA:\n")
-                    eficiencia = metricas.get('metricas_eficiencia', {})
-                    f.write(f"Eficiencia de línea: {eficiencia.get('eficiencia_linea', 0):.1f}%\n")
-                    f.write(f"Balance de suavidad: {eficiencia.get('indice_suavidad', 0):.2f}\n")
-                    f.write(f"Tiempo ocioso total: {eficiencia.get('tiempo_ocioso_total', 0):.2f} min\n")
-
-        except Exception as e:
-            raise Exception(f"Error al escribir archivo: {str(e)}")
 
     def _mostrar_ayuda(self):
         """Muestra la ventana de ayuda."""

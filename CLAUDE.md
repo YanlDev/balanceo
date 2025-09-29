@@ -42,6 +42,8 @@ This is a **Production Line Balancing Calculator** using the **Ranked Positional
 3. `BalanceadorRPW` executes algorithm and returns balanced stations
 4. `CalculadoraMetricas` computes efficiency metrics
 5. UI updates with results, charts, and statistics
+6. `GeneradorReportePDF` creates professional PDF reports with corporate design
+7. `PanelVistaPrevia` provides PDF preview with zoom and navigation controls
 
 ## Development Commands
 
@@ -67,14 +69,23 @@ python ui/ventana_principal.py
 - `matplotlib>=3.6.0` - Charts and visualization
 - `pandas>=1.5.0` - Data manipulation
 - `numpy>=1.24.0` - Numerical computations
+- `reportlab>=4.0.0` - Professional PDF report generation
+- `PyMuPDF>=1.23.0` - PDF viewing and manipulation
+- `Pillow>=10.0.0` - Image processing for PDF previews
 
 ## Code Conventions
 
 - **Language**: Spanish variable names and comments (business domain requirement)
 - **Type Hints**: Used throughout for better code documentation
 - **Error Handling**: Custom `ValidacionError` exceptions for business logic errors
-- **UI Architecture**: Component-based with separation of concerns
+- **UI Architecture**: Component-based with separation of concerns, now includes 5 tabs:
+  - Configuration & Data Entry
+  - Balancing Results
+  - Comparative Analysis
+  - Visual Metrics
+  - PDF Preview & Export
 - **Data Validation**: Input validation at multiple layers (UI, domain models)
+- **Report Generation**: Professional PDF reports with corporate design, no emojis
 
 ## Key Files to Understand
 
@@ -82,6 +93,8 @@ python ui/ventana_principal.py
 - `modelos/linea_produccion.py:90-118` - Precedence cycle detection
 - `ui/ventana_principal.py:248-330` - Application orchestration and async execution
 - `modelos/tarea.py:50-64` - Positional weight calculation
+- `servicios/generador_reporte_pdf.py` - Professional PDF report generation
+- `ui/componentes/panel_vista_previa_pdf.py` - PDF preview with zoom and navigation
 
 ## Common Tasks
 
@@ -89,3 +102,32 @@ python ui/ventana_principal.py
 - **Modifying RPW algorithm**: Work in `servicios/balanceador_rpw.py`
 - **UI styling changes**: Update `utils/estilos.py`
 - **New metrics**: Extend `servicios/calculadora_metricas.py`
+- **PDF report customization**: Modify `servicios/generador_reporte_pdf.py`
+- **PDF viewer enhancements**: Update `ui/componentes/panel_vista_previa_pdf.py`
+
+## New Features (Latest Update)
+
+### Professional PDF Reports
+- **Corporate Design**: Clean, professional layout without emojis
+- **Comprehensive Content**:
+  - Corporate header with project title
+  - Line configuration section (daily demand, available time, cycle time)
+  - Detailed task table with IDs, descriptions, times, and positional weights
+  - Station-by-station balancing results with assignments and utilization
+  - Main efficiency metrics (line efficiency, throughput, idle time)
+  - Improvement recommendations based on results
+
+### Enhanced UI Structure
+- **5-Tab Interface**:
+  1. **Configuration & Data Entry**: Task input and line setup
+  2. **Balancing Results**: RPW algorithm results display
+  3. **Comparative Analysis**: Station efficiency analysis, temporal trends, KPIs
+  4. **Visual Metrics**: Charts and graphical representations
+  5. **PDF Preview & Export**: Interactive PDF viewer with zoom and navigation
+
+### PDF Preview Features
+- **Interactive Viewer**: Full PDF preview with PyMuPDF rendering
+- **Zoom Controls**: Zoom in/out, fit to window, percentage display
+- **Page Navigation**: Previous/next buttons, page counter, keyboard shortcuts
+- **Export Functionality**: Direct PDF export from preview interface
+- **Dependency Handling**: Graceful fallback when PDF libraries not installed

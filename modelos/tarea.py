@@ -21,7 +21,8 @@ class Tarea:
         self.precedencias = set(precedencias) if precedencias else set()
         self.peso_posicional = 0.0
         self._sucesores = set()  # Se calculará dinámicamente
-        
+        self._peso_calculado = False  # Flag para evitar recálculos innecesarios
+
         self._validar_datos()
     
     def _validar_datos(self) -> None:
@@ -47,20 +48,37 @@ class Tarea:
         """Retorna el conjunto de sucesores de la tarea."""
         return self._sucesores.copy()
     
-    def calcular_peso_posicional(self, todas_tareas: dict) -> float:
+    def calcular_peso_posicional(self, todas_tareas: dict, visitadas: set = None) -> float:
         """
         Calcula el peso posicional de la tarea.
         Peso = tiempo_tarea + suma_tiempos_sucesores
+
+        Args:
+            todas_tareas: Diccionario con todas las tareas
+            visitadas: Set de tareas ya visitadas para evitar ciclos
         """
-        if self.peso_posicional > 0:
+        # Usar peso ya calculado si existe y no hay ciclos potenciales
+        if hasattr(self, '_peso_calculado') and self._peso_calculado:
             return self.peso_posicional
-        
+
+        # Inicializar conjunto de visitadas si es None
+        if visitadas is None:
+            visitadas = set()
+
+        # Evitar ciclos
+        if self.id in visitadas:
+            return self.tiempo  # Solo devolver tiempo de esta tarea
+
+        visitadas.add(self.id)
+
         peso = self.tiempo
         for sucesor_id in self._sucesores:
             if sucesor_id in todas_tareas:
-                peso += todas_tareas[sucesor_id].calcular_peso_posicional(todas_tareas)
-        
+                peso += todas_tareas[sucesor_id].calcular_peso_posicional(todas_tareas, visitadas.copy())
+
         self.peso_posicional = peso
+        self._peso_calculado = True
+
         return peso
     
     def __str__(self) -> str:

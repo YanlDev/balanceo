@@ -157,22 +157,20 @@ class PanelEntradaDatos:
         frame_tree.pack(fill='both', expand=True)
         
         # Crear Treeview
-        columnas = ('ID', 'Descripción', 'Tiempo', 'Precedencias', 'Peso')
+        columnas = ('ID', 'Descripción', 'Tiempo', 'Precedencias')
         self.tree_tareas = ttk.Treeview(frame_tree, columns=columnas, show='headings', height=8)
-        
+
         # Configurar columnas
         self.tree_tareas.heading('ID', text='ID')
         self.tree_tareas.heading('Descripción', text='Descripción')
         self.tree_tareas.heading('Tiempo', text='Tiempo (min)')
         self.tree_tareas.heading('Precedencias', text='Precedencias')
-        self.tree_tareas.heading('Peso', text='Peso Posicional')
-        
+
         # Ajustar ancho de columnas
         self.tree_tareas.column('ID', width=60, anchor='center')
-        self.tree_tareas.column('Descripción', width=200)
-        self.tree_tareas.column('Tiempo', width=80, anchor='center')
-        self.tree_tareas.column('Precedencias', width=120, anchor='center')
-        self.tree_tareas.column('Peso', width=100, anchor='center')
+        self.tree_tareas.column('Descripción', width=250)
+        self.tree_tareas.column('Tiempo', width=100, anchor='center')
+        self.tree_tareas.column('Precedencias', width=130, anchor='center')
         
         # Scrollbar vertical
         scrollbar = ttk.Scrollbar(frame_tree, orient='vertical', command=self.tree_tareas.yview)
@@ -405,14 +403,12 @@ class PanelEntradaDatos:
         # Agregar tareas actuales
         for tarea in self.tareas_data:
             precedencias_str = ','.join(tarea['precedencias']) if tarea['precedencias'] else '-'
-            peso_str = f"{tarea['peso_posicional']:.1f}" if tarea['peso_posicional'] > 0 else '-'
-            
+
             self.tree_tareas.insert('', 'end', values=(
                 tarea['id'],
                 tarea['descripcion'],
                 f"{tarea['tiempo']:.1f}",
-                precedencias_str,
-                peso_str
+                precedencias_str
             ))
     
     def _limpiar_formulario_tarea(self):

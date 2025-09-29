@@ -72,9 +72,10 @@ class BalanceadorRPW:
         Calcula el peso posicional para todas las tareas.
         Peso posicional = tiempo_tarea + suma_tiempos_todos_sucesores
         """
-        # Resetear pesos existentes
+        # Resetear pesos existentes y flags de cálculo
         for tarea in self.linea_produccion.tareas.values():
             tarea.peso_posicional = 0.0
+            tarea._peso_calculado = False
         
         # Calcular pesos usando recursión con memoización
         for tarea in self.linea_produccion.tareas.values():
